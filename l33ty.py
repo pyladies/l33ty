@@ -80,10 +80,17 @@ class LeetyIRC(irc.IRCClient):
         # Get the function 
         func = getattr(self, 'command_' + command, None)
         
-        # IF not a defined function
-        if func is None:
-            self.msg(channel, "%s,I cant understand what %s means, but you can teach me, catch me @ http://github.com/hemanth/l33ty" % (nick,message))
-            return 
+        # Try some funnies, or just tell them it's not defined
+        if not func:
+            if '?' in message:
+                func = self.command_magic8
+            elif '!!' in message or '!1' in message:
+                self.msg(channel,"%s, ZOMG!1!!1!!" % (nick))
+            elif 'stupid' in message:
+                self.msg(channel,"%s, Pydanny says being stupid is just fine: http://www.slideshare.net/pydanny/confessions-of-a-joe-developer" % (nick))
+            if not func:
+                self.msg(channel, "%s,I cant understand what %s means, but you can teach me, catch me @ http://github.com/hemanth/l33ty" % (nick,message))
+                return 
         
         d = defer.maybeDeferred(func, rest)
         if channel == self.nickname:
@@ -117,7 +124,7 @@ class LeetyIRC(irc.IRCClient):
     
     def command_help(self,rest):
         ''' Just returns the help msg, to the user who pinged with help '''
-        return "Try l33t <str>, peep <url>,goog <str>, xkcd, flip, flop, roll, fortune, karma nick++/--, tweep, magic8"
+        return "Try l33t <str>, peep <url>,goog <str>, xkcd, flip, flop, roll, fortune, karma nick++/--, tweep, magic8, ogdict"
        
     def command_hi(self,rest):
         return "Hello :)"
@@ -237,12 +244,10 @@ class LeetyIRC(irc.IRCClient):
 
     def command_tweep(self, rest):
         '''Searches twitter via tweepy for querystring or a tweet with pyladies in it.'''
-        print rest
         if rest:
             query = rest
         else:
             query = "pyladies"
-        print query
         twitter_search = API()
         tweets = twitter_search.search(q=query,lang='en',rpp=100,geo=1)
         if not len(tweets):
@@ -274,6 +279,23 @@ class LeetyIRC(irc.IRCClient):
         '''Magic 8 ball knows all.'''
         choices = ['It is certain.','It is decidedly so.','Without a doubt.','Yes - definitely.','You may rely on it.','As I see it, yes.','Most likely.','Outlook good.','Signs point to yes.','Yes.','Reply hazy, try again.','Ask again later.','Better not tell you now.','Cannot predict now.','Concentrate and ask again.',"Don't count on it.",'My reply is no.','My sources say no.','Outlook not so good.','Very doubtful.']
         return random.choice(choices)
+
+    def command_ogdict(self,rest):
+        '''Urban dictionary query.'''
+        url='http://www.urbandictionary.com/define.php?term='+urllib.quote(rest)
+        ''' getPage() returns a deferred '''  
+        d = getPage(url)
+        ''' add a call back, that would just return the page contents '''
+        d.addCallback(self._get_def_content)
+        return d
+
+    def _get_def_content(self,page):
+        soup = BeautifulSoup.BeautifulSoup(page,convertEntities=['html', 'xml'])
+        deff = soup.findAll(attrs={'class' : 'definition'})
+        if len(deff):
+            deff = [str(d) for d in deff[0].findAll(text=True)]
+            return ''.join(deff)
+        return 'http://www.youtube.com/watch?v=sTd4teXtavM' 
 
 
 class LeetyIRCactory(protocol.ReconnectingClientFactory):

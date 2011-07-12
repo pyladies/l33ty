@@ -15,7 +15,7 @@ l33ty is an IRC bot build with python, that can do few many things like :
 1. Twisted python 10.0.0
 2. Python-Beautifulsoup
 3. fortune from bsd games
-
+4. tweepy
 
 
 Get the dependencies if on a Debian based system by typing the below, or else get the source and compile :
