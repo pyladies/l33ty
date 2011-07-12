@@ -18,6 +18,7 @@ import json
 import datetime
 import BeautifulSoup
 import bsddb
+from tweepy import API
 from twisted.internet import reactor, task, defer, protocol
 from twisted.python import log
 from twisted.words.protocols import irc
@@ -116,7 +117,7 @@ class LeetyIRC(irc.IRCClient):
     
     def command_help(self,rest):
         ''' Just returns the help msg, to the user who pinged with help '''
-        return "Try l33t <str>, peep <url>,goog <str>, xkcd, flip, flop, roll, fortune, karma nick++/--"
+        return "Try l33t <str>, peep <url>,goog <str>, xkcd, flip, flop, roll, fortune, karma nick++/--, tweep, magic8"
        
     def command_hi(self,rest):
         return "Hello :)"
@@ -233,6 +234,47 @@ class LeetyIRC(irc.IRCClient):
         if stack:
             result += ' (warning: %d item(s) left on stack)' % len(stack)
         return result
+
+    def command_tweep(self, rest):
+        '''Searches twitter via tweepy for querystring or a tweet with pyladies in it.'''
+        print rest
+        if rest:
+            query = rest
+        else:
+            query = "pyladies"
+        print query
+        twitter_search = API()
+        tweets = twitter_search.search(q=query,lang='en',rpp=100,geo=1)
+        if not len(tweets):
+            return 'Sadly, the twitterverse is silent about %s.' % query
+        tweet = random.choice(tweets)
+        if tweet.__dict__['geo']:
+            loc = get_geo(tweet['geo'])
+            if loc:
+                return '@%s - %s (%s)' % (tweet.__dict__['from_user'],tweet.__dict__['text'],loc)
+        return '@%s - %s' % (tweet.__dict__['from_user'],tweet.__dict__['text'])
+
+    def get_geo(self,geo):
+        url = 'http://maps.googleapis.com/maps/api/geocode/json?latlng=%s,%s&sensor=false' % tuple(geo['coordinates'])
+        place_array = json.loads(urllib.urlopen(url).read())['results']
+        if not len(place_array): return ''
+        hood,city,state,zc='','','',''
+
+        for x in place_array[0]['address_components']:
+            if 'neighborhood' in x['types']:
+                hood = x['long_name']
+            if 'sublocality' in x['types']:
+                city = x['long_name'] 
+            if 'administrative_area_level_1' in x['types']:
+                state = x['short_name']
+        places = [hood,city,state]
+        return ', '.join([p for p in places if p]).rstrip(', ')
+
+    def command_magic8(self, rest):
+        '''Magic 8 ball knows all.'''
+        choices = ['It is certain.','It is decidedly so.','Without a doubt.','Yes - definitely.','You may rely on it.','As I see it, yes.','Most likely.','Outlook good.','Signs point to yes.','Yes.','Reply hazy, try again.','Ask again later.','Better not tell you now.','Cannot predict now.','Concentrate and ask again.',"Don't count on it.",'My reply is no.','My sources say no.','Outlook not so good.','Very doubtful.']
+        return random.choice(choices)
+
 
 class LeetyIRCactory(protocol.ReconnectingClientFactory):
     protocol = LeetyIRC
