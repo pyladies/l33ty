@@ -86,8 +86,10 @@ class LeetyIRC(irc.IRCClient):
                 func = self.command_magic8
             elif '!!' in message or '!1' in message:
                 self.msg(channel,"%s, ZOMG!1!!1!!" % (nick))
+                return
             elif 'stupid' in message:
                 self.msg(channel,"%s, Pydanny says being stupid is just fine: http://www.slideshare.net/pydanny/confessions-of-a-joe-developer" % (nick))
+                return
             if not func:
                 self.msg(channel, "%s,I cant understand what %s means, but you can teach me, catch me @ http://github.com/hemanth/l33ty" % (nick,message))
                 return 
